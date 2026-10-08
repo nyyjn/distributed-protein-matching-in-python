@@ -23,8 +23,6 @@ for prot_id, seq, hydrofob in X:
     if matches:
         protein_matches.append((prot_id, len(matches), float(hydrofob)))
 
-print(f"Execution time: {time.time() - start_time:.4f} seconds")
-
 # Sort in a descending order by matches and hydrofobs
 # If matches are equal, python moves to sorting by hydrofobs
 protein_matches.sort(key=lambda x: (x[1], x[2]), reverse=True)
@@ -35,6 +33,8 @@ top_10 = protein_matches[:10]
 # Separate by IDs (X) and occurrences (Y) for plotting
 protein_ids = [str(item[0]) for item in top_10]
 occurences = [item[1] for item in top_10]
+
+print(f"Execution time: {time.time() - start_time:.4f} seconds")
 
 # Plot the bar chart
 # If several proteins exist with same number of matches, order them by the maximum Hydrofob
