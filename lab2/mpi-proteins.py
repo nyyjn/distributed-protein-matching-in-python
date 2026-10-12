@@ -13,6 +13,9 @@ size = comm.Get_size()
 pattern = None
 X = None
 
+# Start measuring sequential time
+# t_seq_start = time.time()
+
 # Read pattern input and CSV file on rank 0
 if rank == 0:
     pattern = input("Enter pattern to search in proteins: ").upper()
@@ -29,8 +32,13 @@ pattern = comm.bcast(pattern, root=0)
 # Compile pattern once so it is not compiled on every single iteration
 pattern_re = re.compile(pattern)
 
+# End measuring sequential time
+# time_seq_total = time.time() - t_seq_start
+
 # Synchronize processes and start timer for time execution measurement
 comm.Barrier()
+
+# Start measuring parallel time
 start_time = time.time()
 
 # Distribute chunks
@@ -50,6 +58,14 @@ local_top_10 = local_matches[:10]
 
 # Gather results back to rank 0
 all_matches = comm.gather(local_top_10, root=0)
+
+# End measuring parallel time
+# time_par = time.time() - start_time
+# total_time = time_seq_total + time_par
+
+# P = time_par / total_time if total_time > 0 else 0.0
+# seq_fraction = 1.0 - P
+# upper_bound = 1.0 / seq_fraction if seq_fraction > 0 else float('inf')
 
 # Finish processing on rank 0
 if rank == 0:
@@ -88,6 +104,38 @@ if rank == 0:
             print(f"Top protein: ID = {top_protein[0]} | Matches = {top_protein[1]} | Hydrophobicity = {top_protein[2]}")
     else:
         print("No matches found for the given pattern.")
+
+    # Print all of Amdahl's Law Metrics
+    # print(f"Amdahl's Law Metrics:")
+    # print(f"Total Running Time: {total_time:.4f} seconds")
+    # print(f"Parallel Time (T_par): {time_par:.4f} seconds")
+    # print(f"Sequential Time (T_seq): {time_seq_total:.4f} seconds")
+    # print(f"Calculated P (Parallel Fraction): {P:.4f} ({P*100:.1f}%)")
+    # print(f"Calculated 1-P (Sequential Fraction): {seq_fraction:.4f} ({seq_fraction*100:.1f}%)")
+    # print(f"Theoretical Upper Bound (Max Speedup): {upper_bound:.2f}x")
+
+    # # Plot Amdahl's Curves
+    # N = np.arange(1, 16)
+
+    # P_values = [1.0, P] 
+
+    # plt.figure(figsize=(10, 5))
+    # for p_val in P_values:
+    #     S = 1 / ((1 - p_val) + (p_val / N))
+        
+    #     if abs(p_val - P) < 1e-5:
+    #         plt.plot(N, S, label=f'Measured P = {P:.2f}', linewidth=3, linestyle='solid', color='red')
+    #     else:
+    #         plt.plot(N, S, label='Ideal Linear Speedup (P = 1.0)', linewidth=1.5, linestyle=':', color='gray')
+
+    # plt.title("Amdahl's Law Speedup Curve vs. Ideal Linear Speedup", fontsize=13)
+    # plt.xlabel("Number of Processors (N)", fontsize=11)
+    # plt.ylabel("Theoretical Speedup (S)", fontsize=11)
+    # plt.axhline(y=upper_bound, color='green', linestyle='solid', label=f'Max Upper Bound ({upper_bound:.2f}x)')
+    # plt.legend(fontsize=10)
+    # plt.grid(True, linestyle=':', alpha=0.7)
+    # plt.tight_layout()
+    # plt.show()
 
 # Below is the version before optimization
 
