@@ -40,7 +40,7 @@ local_data = comm.scatter(chunks, root=0)
 # Find occurences of the pattern string inside each protein sequence
 local_matches = []
 for prot_id, seq, hydrofob in local_data:
-    matches = re.findall(pattern, seq)
+    matches = pattern_re.findall(seq)
     if matches:
         local_matches.append((prot_id, len(matches), float(hydrofob)))
 
@@ -49,7 +49,7 @@ local_matches.sort(key=lambda x: (x[1], x[2]), reverse=True)
 local_top_10 = local_matches[:10]
 
 # Gather results back to rank 0
-all_matches = comm.gather(local_matches, root=0)
+all_matches = comm.gather(local_top_10, root=0)
 
 # Finish processing on rank 0
 if rank == 0:
@@ -64,27 +64,30 @@ if rank == 0:
     top_10 = protein_matches[:10]
     
     # Separate by IDs (X) and occurrences (Y) for plotting
-    protein_ids = [str(item[0]) for item in top_10]
-    occurrences = [item[1] for item in top_10]
+    if top_10:
+        protein_ids = [str(item[0]) for item in top_10]
+        occurrences = [item[1] for item in top_10]
 
-    print(f"Execution time: {time.time() - start_time:.4f} seconds")
+        print(f"Execution time: {time.time() - start_time:.4f} seconds")
+        
+        # Plot the bar chart
+        # If several proteins exist with same number of matches, order them by the maximum Hydrofob
+        plt.figure(figsize=(10, 5))
+        plt.bar(protein_ids, occurrences, color='skyblue')
+        plt.xlabel('Protein ID')
+        plt.ylabel('Number of Occurrences')
+        plt.title('Top 10 Proteins with Most Pattern Matches')
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.show()
     
-    # Plot the bar chart
-    # If several proteins exist with same number of matches, order them by the maximum Hydrofob
-    plt.figure(figsize=(10, 5))
-    plt.bar(protein_ids, occurrences, color='skyblue')
-    plt.xlabel('Protein ID')
-    plt.ylabel('Number of Occurrences')
-    plt.title('Top 10 Proteins with Most Pattern Matches')
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    plt.show()
-    
-    # Print in the screen the id of the protein with max occurrences
-    # If several exist with same number, print the one with max. hydrofob
-    if protein_matches:
-        top_protein = protein_matches[0]
-        print(f"Top protein: ID = {top_protein[0]} | Matches = {top_protein[1]} | Hydrophobicity = {top_protein[2]}")
+        # Print in the screen the id of the protein with max occurrences
+        # If several exist with same number, print the one with max. hydrofob
+        if protein_matches:
+            top_protein = protein_matches[0]
+            print(f"Top protein: ID = {top_protein[0]} | Matches = {top_protein[1]} | Hydrophobicity = {top_protein[2]}")
+    else:
+        print("No matches found for the given pattern.")
 
 # Below is the version before optimization
 
